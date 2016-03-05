@@ -3,15 +3,45 @@ title: "trendsMonitor"
 output: 
   pdf_document: 
     fig_crop: no
-    fig_height: 6
+    fig_height: 7
+    fig_width: 10
 ---
 
 ```{r, echo=FALSE,message=FALSE,warning=FALSE}
 setwd("/Users/moving/Documents/Rprojects/Trading/")
 source("src/monitor_trends.R")
+source("src/plot_density.R")
 
-PlotMonitorTrend(fomulars ="P0*1 + TA0*(-1)",start.date="2009-01-01")
-PlotMonitorTrendLast90Days(fomulars ="P0*1 + TA0*(-1)")
+fomular <- "P0 - TA0"
+PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
+PlotMonitorTrendLast90Days(fomulars =fomular)
+
+fomular <- "P0 - Y0"
+PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
+PlotMonitorTrendLast90Days(fomulars =fomular)
+
+fomular <- "V0 - 2*L0"
+PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
+PlotMonitorTrendLast90Days(fomulars =fomular)
+
+fomular <- "-1*SR0 - 0.5*L0 + V0"
+PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
+PlotMonitorTrendLast90Days(fomulars =fomular)
+
+fomular <- "-2*Y0 + SR0 + TA0"
+PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
+PlotMonitorTrendLast90Days(fomulars =fomular)
+
+fomular <- "-2*A0 + Y0 + M0*2"
+PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
+PlotMonitorTrendLast90Days(fomulars =fomular)
+
+DensityPlot(spe = "Y0")
+DensityPlot(spe = "A0")
+DensityPlot(spe = "M0")
+DensityPlot(spe = "TA0")
+DensityPlot(spe = "P0")
+DensityPlot(spe = "L0")
 
 
 ```
