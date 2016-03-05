@@ -1,0 +1,19 @@
+---
+title: "trendsMonitor"
+output: 
+  pdf_document: 
+    fig_crop: no
+    fig_height: 6
+---
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+setwd("/Users/moving/Documents/Rprojects/Trading/")
+source("src/monitor_trends.R")
+
+PlotMonitorTrend(fomulars ="P0*1 + TA0*(-1)",start.date="2009-01-01")
+PlotMonitorTrendLast90Days(fomulars ="P0*1 + TA0*(-1)")
+
+
+```
+
+
