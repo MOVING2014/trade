@@ -25,22 +25,31 @@ PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
 PlotMonitorTrendLast90Days(fomulars =fomular)
 
 fomular <- "-1*SR0 - 0.5*L0 + V0"
+PlotMonitorTrend(fomulars = fomular,start.date="2000-01-01")
 PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
 PlotMonitorTrendLast90Days(fomulars =fomular)
 
 fomular <- "-2*Y0 + SR0 + TA0"
+PlotMonitorTrend(fomulars = fomular,start.date="2000-01-01")
 PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
 PlotMonitorTrendLast90Days(fomulars =fomular)
 
 fomular <- "-2*A0 + Y0 + M0*2"
+PlotMonitorTrend(fomulars = fomular,start.date="2000-01-01")
 PlotMonitorTrend(fomulars = fomular,start.date="2009-01-01")
 PlotMonitorTrendLast90Days(fomulars =fomular)
 
+qqPlot(delta = "CC", spe = "Y0")
 DensityPlot(spe = "Y0")
+qqPlot(delta = "CC", spe = "A0")
 DensityPlot(spe = "A0")
+qqPlot(delta = "CC", spe = "M0")
 DensityPlot(spe = "M0")
+qqPlot(delta = "CC", spe = "TA0")
 DensityPlot(spe = "TA0")
+qqPlot(delta = "CC", spe = "P0")
 DensityPlot(spe = "P0")
+qqPlot(delta = "CC", spe = "L0")
 DensityPlot(spe = "L0")
 
 

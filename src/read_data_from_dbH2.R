@@ -1,4 +1,5 @@
 require("RJDBC")
+source("src/read_data_from_sina.R")
 
 dbConnectH2 <- function(
   drv.class = "org.h2.Driver",

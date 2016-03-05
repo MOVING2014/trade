@@ -50,6 +50,11 @@ for(i in year){
 MultiPlotList(plist,cols = 3)
 }
 
-
-
+qqPlot <- function(delta = "CC",spe = "Y0"){
+  test.data <- ReadDataFromH2Delta(spe) 
+  ggplot(data=test.data) + 
+    stat_qq(aes_string(sample = delta,colour="YEAR")) + 
+    facet_wrap(~YEAR,scales = "free") + 
+    labs(title = spe)
+}
 
