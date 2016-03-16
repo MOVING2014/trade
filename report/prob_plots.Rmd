@@ -1,0 +1,38 @@
+---
+title: "naiveBayes Prob Plots"
+output: 
+  pdf_document: 
+    fig_crop: no
+    fig_height: 7
+    fig_width: 10
+---
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+setwd("/Users/moving/Documents/Rprojects/Trading/")
+source("src/RandomTrading.R")
+source("src/plot_density.R")
+source("src/read_data_from_dbH2.R")
+
+
+ss <- function(spe="l0"){
+TMPfunction3(spe)
+plotProb(spe)
+}
+
+ss("a0")
+ss("y0")
+ss("m0")
+ss("P0")
+ss("ta0")
+ss("l0")
+ss("v0")
+ss("ag0")
+ss("rb0")
+ss("SR0")
+s
+
+
+
+```
+
+

@@ -58,3 +58,12 @@ qqPlot <- function(delta = "CC",spe = "Y0"){
     labs(title = spe)
 }
 
+scatterPlot <- function(){
+  test.data <- ReadDataFromH2Delta(spe) 
+  test.data$DATE <- as.POSIXct(test.data$DATE)
+  ggplot(data=test.data[test.data$DATE > '2012-01-01',]) + 
+    geom_point(aes(x=DATE, y =CO),color="blue") + 
+    geom_line(aes(x=DATE, y =CC),color = "red", alpha =0.6) + 
+    scale_x_datetime(date_breaks  = "3 month") +
+    theme(axis.text.x  = element_text(angle=90)) 
+}
