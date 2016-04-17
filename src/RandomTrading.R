@@ -18,7 +18,75 @@ PriceCondition <- function(df = tradingData){
 }
 
 
-ConditionTransfer <- function(td = tradingData[i,], ltd = tradingData[i-1,]){
+`%+%` <- function(a,b) paste0(a,b)
+
+
+MA <- function( pa = 10){
+  function(spe = y0, papa =0){
+  papa <-0
+  p1 <- paste0("MA",pa)
+  num <- pa
+  z <- data.frame(c(rep(NA,num), spe$CLOSE[num:(nrow(spe)-1)] - spe$CLOSE[1:(nrow(spe)-num)]))
+  names(z) <- p1
+  z
+  }
+}
+
+
+MA60 <- MA(60)
+MA40 <- MA(40)
+MA20 <- MA(20)
+MA10 <- MA(10)
+
+genMetrics <- function(metrics = "HIGH", rulel = mean){
+z<-deparse(substitute(rulel))
+function(spe = y0, pa = 10){
+  pa <- 10
+  p1 <- paste0(metrics,pa,z )
+  l <- data.frame(rep(NA,nrow(spe)))
+  names(l) <- p1
+  
+  for(i in 61:nrow(spe)){ 
+    l[i,] <- rulel(sort(spe[[metrics]][(i-1):(i-60)],decreasing = TRUE)[1:10])/spe[["CLOSE"]][i-1]
+  }
+  l
+}
+}
+
+H30 <- genMetrics(metrics = "HIGH")
+L30 <- genMetrics(metrics = "LOW")
+sdH30 <- genMetrics(metrics = "HIGH", rulel = sd)
+sdL30 <- genMetrics(metrics = "LOW", rulel = sd)
+
+
+AddParameters <- function(spe=y0, pa = 10, rules = MA){
+  rules(spe, pa)
+}
+
+
+AddParametersAll <- function(spe=y0,l = c(H30,L30,sdH30,sdL30,MA60,MA40,MA20,MA10)){
+  z <- as.data.frame(lapply(l, function(x) AddParameters(spe,rules =x)))
+  m <- cbind(y0,z)
+  subset(m,!is.na(MA60))
+}
+
+
+AddMAParameters <- function(spe = y0, MA.parameters = c(1,2,3) ){
+names(MA.parameters) <- paste0("MA", MA.parameters)
+as.data.frame((lapply(MA.parameters,function(num) (modelParameters(spe=spe,method = "MA",num)))))
+}
+
+
+
+ConditionTransfer <- function(td = tradingData[i,], ltd = tradingData[i-1,]
+                              ,trading.fee = 2
+                              ,plist = list(pSOH=0.8
+                                             ,pSOBC=0.2
+                                             ,pSO=0.1
+                                             ,pH=0.8
+                                             ,pBO=0.1
+                                             ,pBOSC=0.2
+                                             ,pBOH=0.8)){
   
   if(ltd$position == -1){
     l <- c("pSOH","pSOBC")
@@ -38,19 +106,20 @@ ConditionTransfer <- function(td = tradingData[i,], ltd = tradingData[i-1,]){
 #   pSOBC <-0.9
 #   pSOH <- 0.1
 #   sample(l,1,mget(l))
-
-  action <- sample(l,1)
+  
+  action <- sample(l,1,prob=plist[l])
+  
   
   if(action == "pSOH"){
     tradeprice <- ltd$tradeprice
     position <- ltd$position
     Syield <- 0
-    Cyield <- ltd$Cyield + Syield
+    Cyield <- ltd$Cyield + Syield 
     TS <- "HOLD"
   }else if (action == "pSOBC"){
     tradeprice <- td$OPEN
     position <- 0
-    Syield <- - (tradeprice - ltd$tradeprice)
+    Syield <- - (tradeprice - ltd$tradeprice) - trading.fee
     Cyield <- ltd$Cyield + Syield
     TS <- "BC"
   }else if(action == "pSO"){
@@ -74,7 +143,7 @@ ConditionTransfer <- function(td = tradingData[i,], ltd = tradingData[i-1,]){
   }else if(action == "pBOSC"){
     tradeprice <- td$OPEN
     position <- 0
-    Syield <- tradeprice - ltd$tradeprice
+    Syield <- tradeprice - ltd$tradeprice - trading.fee
     Cyield <- ltd$Cyield + Syield
     TS <- "SC"
   }else if(action == "pBOH"){
@@ -89,6 +158,28 @@ ConditionTransfer <- function(td = tradingData[i,], ltd = tradingData[i-1,]){
   
   
 }
+
+TradeFunction <- function(spe = "y0",tradeFunction = ConditionTransfer
+                          ,plist = list(pSOH=0.8
+                                        ,pSOBC=0.2
+                                        ,pSO=0.1
+                                        ,pH=0.8
+                                        ,pBO=0.1
+                                        ,pBOSC=0.2
+                                        ,pBOH=0.8)){
+
+  for(i in 2:nrow(y0)){
+    result <- tradeFunction(y0[i,],y0[i-1,],plist=plist)
+    y0[i,c("tradeprice","position","Syield","Cyield")] <- result[[1]]
+    y0[i,c("TS")] <- result[[2]]
+  }
+  y0
+}
+
+
+
+
+
 
 
 TMPfunction <- function(spe = "y0"){
@@ -108,7 +199,7 @@ dbDisconnect(con)
 y0
 }
 
-#y0 <- TMPfunction()
+y0 <- TMPfunction()
 
 AddParameters <- function(y0){
 
@@ -148,8 +239,8 @@ y0
 
 
 TMPfunction2 <- function(spe="y0"){
-
-x <- AddParameters(TMPfunction(spe))
+mm <- TMPfunction(spe)
+x <- AddParametersAll()
 btest <- x[,c("duration","tradeprice","MA60","MA40","MA20","MA10","H30","L30","stdH30","stdL30","TS","lastCO","OO","Syield")]
 # btest$flag[btest$Syield > 0] <- "winsmall"
 # btest$flag[btest$Syield > 50] <- "winmedian"
@@ -221,3 +312,215 @@ print(p)
 dbDisconnect(con)
 }
 
+pf <- function(plist = list(pSOH=0.8
+                ,pSOBC=0.2
+                ,pSO=0.1
+                ,pH=0.8
+                ,pBO=0.1
+                ,pBOSC=0.2
+                ,pBOH=0.8)){
+x <- TradeFunction(plist=plist)
+x$year <- substr(x$DATE,1,4)
+p1 <- ggplot(data = x, aes(x = as.POSIXct(DATE), y = Cyield,color=year)) + 
+  geom_point() + 
+  scale_x_datetime(date_breaks = "1 year") +
+  geom_hline(yintercept = 0,color = "blue") +
+  #theme(axis.text.x  = element_text(angle=90)) 
+  theme(axis.text.x  = element_blank()
+        ,axis.title.x = element_blank()
+        ,axis.title.y = element_blank()
+        ,legend.position = "none") 
+
+p1
+}
+
+getplist <- function(pHold = 0.8){
+  plist = list(pSOH=pHold
+               ,pSOBC=1-pHold
+               ,pSO=(1-pHold)/2
+               ,pH=pHold
+               ,pBO=(1-pHold)/2
+               ,pBOSC=1-pHold
+               ,pBOH=pHold)
+  plist
+}
+
+# plist <- getplist(pHold = 0.9)
+# 
+# MultiPlot(cols=5,pf(),pf(),pf(),pf(),pf()
+#           ,pf(),pf(),pf(),pf(),pf()
+#           ,pf(),pf(),pf(),pf(),pf()
+#           ,pf(),pf(),pf(),pf(),pf()
+#           ,pf(),pf(),pf(),pf(),pf())
+# 
+# 
+# ggplot(data = x, aes(x = as.POSIXct(DATE), y = Cyield,color=year)) + 
+#   geom_point() + 
+#   scale_x_datetime(date_breaks = "1 year") +
+#   theme(axis.text.x  = element_blank()
+#         ,axis.title.x = element_blank()
+#         ,axis.title.y = element_blank()
+#         ,legend.position = "none") 
+# 
+#         
+# 
+# ####flow####
+# #1
+# 
+# con <- dbConnectH2()
+# sql <- paste0("select * from ",spe )
+# y0 <- PriceCondition(ReadDataFromH2(con,sql))
+# y0 <- AddParametersAll(spe = y0)
+# head(y0)
+# dbDisconnect(con)
+# zz <- TradeFunction(spe = "y0")
+# mm <- subset(zz, TS!="HOLD")
+# se <- rep(seq(2,nrow(mm),by = 2),2)
+# rid <- se[order(se)]
+# 
+# mm$Syield[1:length(rid)] <- mm$Syield[rid]
+# 
+# x <- rbind(x,mm)
+# nrow(x)
+# 
+# 
+# con <- dbConnectH2()
+# 
+# 
+# x$flag <- cut(x$Syield,breaks = c(-1000,-200,-100,-30,30,100,200,1000))
+# dbSendUpdate(con,statement = "drop table mm")
+# dbWriteTable(con, "mm",x)
+# 
+# 
+# mm <- x
+# buy.model.raw.data <- subset(mm, TS == "BO")
+# bks <- buy.model.raw.data$Syield
+# bks <- bks[order(bks)]
+# bks <- bks[(1:9)*as.integer(length(bks)/10)]
+# bks <- c(bks,0)
+# buy.model.raw.data$flag <- cut(buy.model.raw.data$Syield,breaks = bks)
+# 
+# sell.model.raw.data <- subset(mm, TS == "SO")
+# bks <- sell.model.raw.data$Syield
+# bks <- bks[order(bks)]
+# bks <- bks[(1:9)*as.integer(length(bks)/10)]
+# bks <- c(bks,0)
+# 
+# sell.model.raw.data$flag <- cut(sell.model.raw.data$Syield,breaks = bks)
+# 
+# 
+# 
+# inds <- c("MA10","MA20","MA40","MA60","HIGH10mean","LOW10mean","HIGH10sd","LOW10sd" )
+# ind <- paste0(inds,collapse = "+")
+# f <- as.formula(paste0("flag~",ind))
+# buy.model <- naiveBayes(f, data=buy.model.raw.data)
+# 
+# buy.model <- randomForest(f, data=subset(buy.model.raw.data, !is.na(flag)))
+# 
+# table(buy.model.raw.data$flag,predict(buy.model ,newdata=buy.model.raw.data[,inds]))
+# 
+# result <- predict(buy.model,newdata = y0[nrow(y0),inds],type = "vote")
+# result
+# 
+# 
+# 
+# sell.model <- randomForest(f, data=subset(sell.model.raw.data,!is.na(flag)))
+# table(sell.model.raw.data$flag,predict(sell.model ,newdata=sell.model.raw.data[,inds]))
+# result <- predict(sell.model,newdata = y0[nrow(y0),inds],type = "prob")
+# result
+# 
+# 
+####flow model####
+#2
+
+species <- c("p0","ta0","l0","sr0","y0","m0","a0")
+#####print p0
+#spe <- "p0"
+for(i in 1:20){
+for(spe in species){
+
+con <- dbConnectH2()
+sql <- paste0("select * from ",spe )
+y0 <- PriceCondition(ReadDataFromH2(con,sql))
+y0 <- AddParametersAll(spe = y0)
+
+
+zz <- TradeFunction(spe = spe)
+mm <- subset(zz, TS!="HOLD")
+se <- rep(seq(2,nrow(mm),by = 2),2)
+rid <- se[order(se)]
+mm$Syield[1:length(rid)] <- mm$Syield[rid]
+x <- mm
+for(i in 1:20){
+  y0 <- PriceCondition(ReadDataFromH2(con,sql))
+  y0 <- AddParametersAll(spe = y0)
+  zz <- TradeFunction(spe = spe)
+  mm <- subset(zz, TS!="HOLD")
+  se <- rep(seq(2,nrow(mm),by = 2),2)
+  rid <- se[order(se)]
+  mm$Syield[1:length(rid)] <- mm$Syield[rid]
+  x <- rbind(x,mm)  
+}
+
+dbDisconnect(con)
+#x
+
+mm <- x
+buy.model.raw.data <- subset(mm, TS == "BO")
+bks <- buy.model.raw.data$Syield
+bks <- bks[order(bks)]
+bks <- bks[(1:9)*as.integer(length(bks)/10)]
+bks <- unique(c(bks,0))
+buy.model.raw.data$flag <- cut(buy.model.raw.data$Syield,breaks = bks)
+
+inds <- c("MA10","MA20","MA40","MA60","HIGH10mean","LOW10mean","HIGH10sd","LOW10sd" )
+ind <- paste0(inds,collapse = "+")
+f <- as.formula(paste0("flag~",ind))
+require(randomForest)
+buy.model <- randomForest(f, data=subset(buy.model.raw.data, !is.na(flag)))
+table(buy.model.raw.data$flag,predict(buy.model ,newdata=buy.model.raw.data[,inds]))
+z <- predict(buy.model,newdata = y0[nrow(y0),inds],type = "vote")
+
+con <- dbConnectH2()
+maxseq <- ReadDataFromH2(con,sql = "select max(seq) from randomForest where direction = 'BO' and spe = '" %+%spe%+%"'")
+if(is.na(maxseq)) maxseq = 1 else maxseq = maxseq +1
+
+today <- ReadDataFromH2(con,sql = "select max(date) from a0")[1,1]
+
+for(i in 1:length(z)){
+sql <- "insert into randomForest values ('"%+%spe%+%"','BO','"%+%dimnames(t(z))[[1]][i]%+% "'," %+% t(z)[i]%+%","%+%maxseq %+%",'"%+%today%+%"')"
+dbSendUpdate(con,sql)
+}
+dbDisconnect(con)
+
+
+mm <- x
+sell.model.raw.data <- subset(mm, TS == "SO")
+bks <- sell.model.raw.data$Syield
+bks <- bks[order(bks)]
+bks <- bks[(1:9)*as.integer(length(bks)/10)]
+bks <- unique(c(bks,0))
+sell.model.raw.data$flag <- cut(sell.model.raw.data$Syield,breaks = bks)
+
+inds <- c("MA10","MA20","MA40","MA60","HIGH10mean","LOW10mean","HIGH10sd","LOW10sd" )
+ind <- paste0(inds,collapse = "+")
+f <- as.formula(paste0("flag~",ind))
+sell.model <- randomForest(f, data=subset(sell.model.raw.data,!is.na(flag)))
+print("SELL Models")
+table(sell.model.raw.data$flag,predict(sell.model ,newdata=sell.model.raw.data[,inds]))
+z <- predict(sell.model,newdata = y0[nrow(y0),inds],type = "prob")
+
+
+con <- dbConnectH2()
+maxseq <- ReadDataFromH2(con,sql = "select max(seq) from randomForest where direction = 'SO' and  spe = '" %+%spe%+%"'")
+if(is.na(maxseq)) maxseq = 1 else maxseq = maxseq +1
+today <- ReadDataFromH2(con,sql = "select max(date) from a0")[1,1]
+
+for(i in 1:length(z)){
+  sql <- "insert into randomForest values ('"%+%spe%+%"','SO','"%+%dimnames(t(z))[[1]][i]%+% "'," %+% t(z)[i]%+%","%+%maxseq %+%",'"%+%today%+%"')"
+  dbSendUpdate(con,sql)
+}
+dbDisconnect(con)
+}
+
+}
